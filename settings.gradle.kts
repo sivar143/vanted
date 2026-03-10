@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "vanted"
 include(":app")
+project(":app").projectDir = file("frontend/androidAPP")

@@ -1,30 +1,31 @@
-# Project Architecture Overview
+# VANTED Project
 
-## Overview
-This project organizes the architecture for high-traffic applications using Java microservices, REST APIs, MySQL, Angular for web, and Kotlin for Android. Below is the folder structure and its components.
+VANTED is organized as a multi-frontend workspace with Android currently implemented and Angular space prepared.
 
-## Folder Structure
-- **backend**  
-   - **microservices**  
-      - **service1** (Spring Boot)  
-      - **service2** (Spring Boot)  
-- **frontend**  
-   - **angular-app**  
-- **android-app**  
-- **docker**  
-- **config**  
+## Repository structure
+- `frontend/webUI/angular/` → Angular web app workspace (placeholder scaffold location)
+- `frontend/androidAPP/` → Android app (Kotlin + Jetpack Compose)
 
-## Technologies Used
-- Java (Spring Boot)
-- MySQL
-- Angular
-- Kotlin
-- Docker  
+## Android app features (current)
+- Service marketplace categories (Driver, Home Needs, Courier)
+- Search and filter services
+- Service summary with ETA and base fare
+- Booking form with validation
+- Recent bookings list
 
-## Architecture Components
-- High-traffic support via microservices architecture
-- REST APIs for client-server communications
-- MySQL for relational data management  
+## Android code map
+- `frontend/androidAPP/src/main/java/com/example/vanted/MainActivity.kt`
+- `frontend/androidAPP/src/main/java/com/example/vanted/ui/HomeScreen.kt`
+- `frontend/androidAPP/src/main/java/com/example/vanted/data/ServiceModels.kt`
+- `frontend/androidAPP/src/main/java/com/example/vanted/data/ServiceRepository.kt`
+- `frontend/androidAPP/src/main/java/com/example/vanted/domain/BookingRequest.kt`
+- `frontend/androidAPP/src/main/java/com/example/vanted/domain/BookingValidator.kt`
+- `frontend/androidAPP/src/test/java/com/example/vanted/ExampleUnitTest.kt`
 
-## Setup Instructions
-- Instructions for setting up each component will be provided in their respective folders.
+## Run Android tests
+```bash
+./gradlew testDebugUnitTest
+```
+
+## Deployment
+See `DEPLOYMENT.md` in the repository root for deployment steps (frontend/backend/MySQL/android).
