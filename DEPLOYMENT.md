@@ -33,7 +33,7 @@ DB_HOST=mysql
 DB_PORT=3306
 DB_NAME=vanted
 DB_USER=vanted_app
-DB_PASSWORD=change_me
+DB_PASSWORD=user_pass
 JWT_SECRET=replace_with_long_random_secret
 CORS_ALLOWED_ORIGINS=https://app.example.com
 ```
@@ -45,10 +45,10 @@ API_BASE_URL=https://api.example.com
 
 ### MySQL (`mysql/.env`)
 ```env
-MYSQL_ROOT_PASSWORD=change_root_password
+MYSQL_ROOT_PASSWORD=root
 MYSQL_DATABASE=vanted
 MYSQL_USER=vanted_app
-MYSQL_PASSWORD=change_me
+MYSQL_PASSWORD=user_pass
 ```
 
 ## 4) Local/staging deployment with Docker Compose
