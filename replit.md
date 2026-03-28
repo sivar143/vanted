@@ -48,10 +48,13 @@ artifacts-monorepo/
 - **Shopping Cart** (`/cart`): View/update/remove items, total
 - **Checkout** (`/checkout`): Customer info, payment method selection
 - **Order Confirmation** (`/order-success/:id`): Post-checkout confirmation
+- **User Login** (`/login`): Login with email or username
+- **User Signup** (`/signup`): Register a new user account
 - **Admin Login** (`/admin`): Secure admin access
 - **Admin Dashboard** (`/admin/dashboard`): Stats overview
 - **Admin Services** (`/admin/services`): Add, edit, delete services
 - **Admin Orders** (`/admin/orders`): View all orders
+- **Admin Login Records** (`/admin/login-logs`): View all admin and user login attempts
 
 ### Admin Credentials
 - **Username**: `admin`
@@ -63,6 +66,8 @@ artifacts-monorepo/
 - `cart_items` — Session-based shopping cart
 - `orders` — Customer orders with status tracking
 - `order_items` — Line items per order
+- `users` — Registered user accounts (email, username, hashed password)
+- `login_logs` — Record of all login attempts (admin and user, with IP, success/fail, timestamp)
 
 ### API Endpoints
 All under `/api`:

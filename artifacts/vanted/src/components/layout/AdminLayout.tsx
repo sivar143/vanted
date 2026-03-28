@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Package, ShoppingBag, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, LogOut, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { getAdminToken } from "@/lib/session";
@@ -27,6 +27,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/services", label: "Services", icon: Package },
     { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+    { href: "/admin/login-logs", label: "Login Records", icon: ClipboardList },
   ];
 
   return (

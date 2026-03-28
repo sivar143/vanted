@@ -363,6 +363,79 @@ export const GetOrderResponse = zod.object({
 });
 
 /**
+ * @summary Register a new user
+ */
+export const userSignupBodyPasswordMin = 6;
+
+export const UserSignupBody = zod.object({
+  email: zod.string().email(),
+  username: zod.string(),
+  password: zod.string().min(userSignupBodyPasswordMin),
+});
+
+/**
+ * @summary Login as a user
+ */
+export const UserLoginBody = zod.object({
+  identifier: zod.string().describe("Email or username"),
+  password: zod.string(),
+});
+
+export const UserLoginResponse = zod.object({
+  token: zod.string(),
+  userId: zod.number(),
+  email: zod.string(),
+  username: zod.string(),
+});
+
+/**
+ * @summary Logout current user
+ */
+export const UserLogoutResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string().optional(),
+});
+
+/**
+ * @summary Get current user profile
+ */
+export const GetMeResponse = zod.object({
+  id: zod.number(),
+  email: zod.string(),
+  username: zod.string(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary Get login logs for all users and admins
+ */
+export const getLoginLogsQueryPageDefault = 1;
+export const getLoginLogsQueryLimitDefault = 20;
+
+export const GetLoginLogsQueryParams = zod.object({
+  type: zod.enum(["admin", "user"]).optional(),
+  page: zod.coerce.number().default(getLoginLogsQueryPageDefault),
+  limit: zod.coerce.number().default(getLoginLogsQueryLimitDefault),
+});
+
+export const GetLoginLogsResponse = zod.object({
+  logs: zod.array(
+    zod.object({
+      id: zod.number(),
+      type: zod.enum(["admin", "user"]),
+      identifier: zod.string(),
+      ipAddress: zod.string().nullish(),
+      success: zod.boolean(),
+      createdAt: zod.date(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  limit: zod.number(),
+  totalPages: zod.number(),
+});
+
+/**
  * @summary Admin login
  */
 export const AdminLoginBody = zod.object({

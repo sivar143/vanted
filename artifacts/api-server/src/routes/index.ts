@@ -4,6 +4,7 @@ import servicesRouter from "./services";
 import cartRouter from "./cart";
 import ordersRouter from "./orders";
 import adminRouter from "./admin";
+import authRouter from "./auth";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use("/services", servicesRouter);
 router.use("/cart", cartRouter);
 router.use("/orders", ordersRouter);
 router.use("/admin", adminRouter);
+router.use("/auth", authRouter);
 
 export default router;

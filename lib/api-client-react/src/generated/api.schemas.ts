@@ -180,6 +180,57 @@ export interface AdminStats {
   featuredServices: number;
 }
 
+export interface UserSignupRequest {
+  email: string;
+  username: string;
+  /** @minLength 6 */
+  password: string;
+}
+
+export interface UserLoginRequest {
+  /** Email or username */
+  identifier: string;
+  password: string;
+}
+
+export interface UserLoginResponse {
+  token: string;
+  userId: number;
+  email: string;
+  username: string;
+}
+
+export interface UserProfile {
+  id: number;
+  email: string;
+  username: string;
+  createdAt: string;
+}
+
+export type LoginLogType = (typeof LoginLogType)[keyof typeof LoginLogType];
+
+export const LoginLogType = {
+  admin: "admin",
+  user: "user",
+} as const;
+
+export interface LoginLog {
+  id: number;
+  type: LoginLogType;
+  identifier: string;
+  ipAddress?: string | null;
+  success: boolean;
+  createdAt: string;
+}
+
+export interface LoginLogsResponse {
+  logs: LoginLog[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export type ListServicesParams = {
   category?: string;
   search?: string;
@@ -194,3 +245,17 @@ export type GetCartParams = {
 export type ClearCartParams = {
   sessionId: string;
 };
+
+export type GetLoginLogsParams = {
+  type?: GetLoginLogsType;
+  page?: number;
+  limit?: number;
+};
+
+export type GetLoginLogsType =
+  (typeof GetLoginLogsType)[keyof typeof GetLoginLogsType];
+
+export const GetLoginLogsType = {
+  admin: "admin",
+  user: "user",
+} as const;

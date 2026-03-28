@@ -15,12 +15,15 @@ import ServiceDetail from "@/pages/service-detail";
 import Cart from "@/pages/cart";
 import Checkout from "@/pages/checkout";
 import OrderSuccess from "@/pages/order-success";
+import Login from "@/pages/login";
+import Signup from "@/pages/signup";
 
 // Admin Pages
 import AdminLogin from "@/pages/admin/login";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminServices from "@/pages/admin/services";
 import AdminOrders from "@/pages/admin/orders";
+import AdminLoginLogs from "@/pages/admin/login-logs";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,8 +37,9 @@ const queryClient = new QueryClient({
 function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const isAdmin = location.startsWith("/admin");
-  
-  if (isAdmin) {
+  const isAuthPage = location === "/login" || location === "/signup";
+
+  if (isAdmin || isAuthPage) {
     return <>{children}</>;
   }
 
@@ -61,12 +65,17 @@ function Router() {
         <Route path="/cart" component={Cart} />
         <Route path="/checkout" component={Checkout} />
         <Route path="/order-success/:id" component={OrderSuccess} />
+
+        {/* Auth Routes */}
+        <Route path="/login" component={Login} />
+        <Route path="/signup" component={Signup} />
         
         {/* Admin Routes */}
         <Route path="/admin" component={AdminLogin} />
         <Route path="/admin/dashboard" component={AdminDashboard} />
         <Route path="/admin/services" component={AdminServices} />
         <Route path="/admin/orders" component={AdminOrders} />
+        <Route path="/admin/login-logs" component={AdminLoginLogs} />
         
         <Route component={NotFound} />
       </Switch>

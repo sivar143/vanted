@@ -17,6 +17,8 @@ tags:
     description: Order and payment operations
   - name: admin
     description: Admin management operations
+  - name: auth
+    description: User authentication operations
 
 paths:
   /healthz:
@@ -347,6 +349,129 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /auth/signup:
+    post:
+      operationId: userSignup
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSignupRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLoginResponse"
+        "409":
+          description: Email or username already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: userLogin
+      tags: [auth]
+      summary: Login as a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserLoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: userLogout
+      tags: [auth]
+      summary: Logout current user
+      security:
+        - UserToken: []
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user profile
+      security:
+        - UserToken: []
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/login-logs:
+    get:
+      operationId: getLoginLogs
+      tags: [admin]
+      summary: Get login logs for all users and admins
+      security:
+        - AdminKey: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [admin, user]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Login logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginLogsResponse"
+
   /admin/login:
     post:
       operationId: adminLogin
@@ -393,6 +518,10 @@ components:
       type: apiKey
       in: header
       name: x-admin-token
+    UserToken:
+      type: apiKey
+      in: header
+      name: x-user-token
 
   schemas:
     HealthStatus:
@@ -702,3 +831,90 @@ components:
         featuredServices:
           type: integer
       required: [totalServices, totalOrders, totalRevenue, pendingOrders, featuredServices]
+
+    UserSignupRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        password:
+          type: string
+          minLength: 6
+      required: [email, username, password]
+
+    UserLoginRequest:
+      type: object
+      properties:
+        identifier:
+          type: string
+          description: Email or username
+        password:
+          type: string
+      required: [identifier, password]
+
+    UserLoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        userId:
+          type: integer
+        email:
+          type: string
+        username:
+          type: string
+      required: [token, userId, email, username]
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        username:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, email, username, createdAt]
+
+    LoginLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [admin, user]
+        identifier:
+          type: string
+        ipAddress:
+          type: string
+          nullable: true
+        success:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, type, identifier, success, createdAt]
+
+    LoginLogsResponse:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/LoginLog"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+      required: [logs, total, page, limit, totalPages]
