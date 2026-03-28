@@ -12,5 +12,12 @@
   "devDependencies": {
     "typescript": "~5.9.2",
     "prettier": "^3.8.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "path-to-regexp": "8.4.0",
+      "picomatch@2": "2.3.2",
+      "picomatch@4": "4.0.4"
+    }
   }
 }
