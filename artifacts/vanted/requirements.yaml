@@ -1,0 +1,21 @@
+packages:
+  "framer-motion": "For page transitions, smooth hover states, and list animations to create a premium feel."
+  "react-hook-form": "For robust form state management in checkout and admin panels."
+  "@hookform/resolvers": "To integrate Zod validation with react-hook-form."
+  "lucide-react": "Beautiful, consistent icon set."
+  "clsx": "Utility for constructing className strings conditionally."
+  "tailwind-merge": "Utility to safely merge Tailwind CSS classes."
+  "date-fns": "For elegant date formatting in orders and service creation."
+
+images:
+  - path: "artifacts/vanted/public/images/hero-bg.png"
+    description: "Premium abstract background with deep indigo and teal soft gradients, glassmorphism elements, clean modern corporate technology feel, very subtle mesh."
+    aspect_ratio: "16:9"
+  - path: "artifacts/vanted/public/images/empty-state.png"
+    description: "Minimalist soft 3D illustration of an empty box or clipboard, very clean, white and light gray tones with a hint of indigo, floating softly."
+    aspect_ratio: "1:1"
+
+notes:
+  - Using crypto.randomUUID() for generating session IDs for the cart.
+  - Using localStorage for 'admin-token' and 'vanted-session-id'.
+  - Assumes customFetch in generated API uses standard RequestInit for the `request` options to pass headers like 'x-admin-token'.

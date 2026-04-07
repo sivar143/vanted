@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Vanted"
+version = "1.0.0"
+id = "artifacts/vanted"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22649
+
+[services.development]
+run = "pnpm --filter @workspace/vanted run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/vanted", "run", "build" ]
+publicDir = "artifacts/vanted/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22649"
+BASE_PATH = "/"
