@@ -11,7 +11,7 @@
   <artifactId>vanted-api</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>vanted-api</name>
-  <description>Compatibility API during the Vanted microservices migration</description>
+  <description>Vanted marketplace compatibility API</description>
   <properties><java.version>25</java.version></properties>
   <dependencies>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc</artifactId></dependency>
