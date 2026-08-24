@@ -5,13 +5,16 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: ${PAYMENT_DB_URL:jdbc:mysql://mysql-payment:3306/vanted_payment?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    url: ${PAYMENT_DB_URL:jdbc:mysql://mysql:3306/vanted_payment?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
     username: ${PAYMENT_DB_USERNAME:vanted}
     password: ${PAYMENT_DB_PASSWORD:change-me}
   jpa:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+  flyway:
+    enabled: ${VANTED_FLYWAY_ENABLED:true}
+    locations: classpath:db/migration
   rabbitmq:
     addresses: ${RABBITMQ_URL:amqp://vanted:change-me@rabbitmq:5672}
 server:
