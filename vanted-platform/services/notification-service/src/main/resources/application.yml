@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: notification-service
+  threads:
+    virtual:
+      enabled: true
+  rabbitmq:
+    addresses: ${RABBITMQ_URL:amqp://vanted:change-me@rabbitmq:5672}
+server:
+  port: ${PORT:8085}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
