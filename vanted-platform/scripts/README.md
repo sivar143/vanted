@@ -38,7 +38,7 @@ cd scripts
 
 The Windows bootstrap enforces the project's exact Node.js and Maven baselines. Node.js is installed from the official Node.js MSI when the detected version is wrong; Maven 3.9.16 is installed from the official Apache binary distribution because the Maven package is not consistently available through winget. The script refreshes the current process PATH after installation and also persists the Maven user PATH.
 
-The script now **fails fast** if frontend dependencies cannot be installed, Docker image pulls fail, or the application cannot be started. It will never print `Completed successfully` after one of those operations fails.
+The script fails fast if frontend dependencies cannot be installed, Docker image pulls fail, or the application cannot be started. It will never print `Completed successfully` after one of those operations fails.
 
 If Docker Desktop was installed by the script but the Docker command is not yet available, start Docker Desktop, close/reopen PowerShell, and rerun the setup script.
 
@@ -84,8 +84,17 @@ cd vanted/vanted-platform
 Open the application at:
 
 ```text
-http://localhost
+http://localhost:8080
 ```
+
+Local NGINX deliberately binds to non-privileged host ports by default so Windows services that reserve port 80/443 do not block development:
+
+```text
+HTTP  8080 -> container 80
+HTTPS 8443 -> container 443
+```
+
+Override these with `VANTED_HTTP_PORT` and `VANTED_HTTPS_PORT` in `.env` when needed.
 
 NGINX is the public entry point. The Spring Boot microservices are intentionally not exposed directly to the host.
 
@@ -105,6 +114,12 @@ cd vanted\vanted-platform\scripts
 ```bash
 cd vanted/vanted-platform
 ./scripts/start-local-debug-linux.sh
+```
+
+Open:
+
+```text
+http://localhost:8080
 ```
 
 This mode remains **LOCAL**. It can enable observability, RabbitMQ, Redis, and sandbox external integrations while keeping Kubernetes and production features disabled. Live production credentials/endpoints must never be used.
@@ -148,19 +163,10 @@ The reset removes local Docker volumes, including MySQL, RabbitMQ and Redis data
 From `vanted-platform`:
 
 ```powershell
-# Show service status
 docker compose ps
-
-# Follow all service logs
 docker compose logs -f
-
-# Follow one service
 docker compose logs -f auth-service
-
-# Restart one service
 docker compose restart auth-service
-
-# Rebuild one service
 docker compose build auth-service
 ```
 
@@ -173,7 +179,7 @@ The bootstrap scripts check or install the host development toolchain:
 - Git
 - Node.js 24.19.0 LTS
 - Angular 22.1 stable line
-- TypeScript 6.0.3 (Angular 22.1 compatible)
+- TypeScript 6.0.3
 - Java 25 LTS
 - Apache Maven 3.9.16
 - Docker Engine/Desktop
@@ -214,16 +220,17 @@ Environment flags are not treated as the sole security boundary. Authentication,
 
 ## 9. Local endpoints
 
-- Application: `http://localhost`
+- Application: `http://localhost:8080`
+- HTTPS local binding: `https://localhost:8443` when TLS is configured
 - RabbitMQ management UI: `http://localhost:15672`
 - Backend services: not published directly to the host
-- NGINX: public entry point on port 80; HTTPS is used in production deployment
+- NGINX: public entry point; production uses standard 80/443 through the deployment platform
 
 ## 10. Common first-run problems
 
 ### `mvn` is not recognized
 
-First update your local copy of the repository because the Windows bootstrap has been hardened to install Maven directly from Apache:
+Update the repository and rerun the Windows bootstrap:
 
 ```powershell
 git pull origin main
@@ -235,37 +242,23 @@ The bootstrap installs Maven into `%LOCALAPPDATA%\Vanted\tools\apache-maven-3.9.
 
 ### Angular/npm reports a TypeScript peer-dependency conflict
 
-Angular 22.1 requires TypeScript `>=6.0.0 <6.1.0`. The repository now pins TypeScript to the compatible `6.0.3` release. Update to the latest `main` before retrying:
-
-```powershell
-git pull origin main
-cd vanted-platform\scripts
-.\setup-windows.ps1
-```
-
-Do **not** solve this with `--force` or `--legacy-peer-deps`; the project should use a genuinely compatible dependency set.
+Angular 22.1 requires TypeScript `>=6.0.0 <6.1.0`. The repository pins TypeScript to `6.0.3`. Do not use `--force` or `--legacy-peer-deps` to hide a dependency mismatch.
 
 ### Docker reports `mysql:8.4.12: not found`
 
-That was an invalid image tag in an earlier repository revision. The current Compose file uses the verified official MySQL `8.4.11` image tag. Update your local repository before rerunning:
-
-```powershell
-git pull origin main
-cd vanted-platform\scripts
-.\setup-windows.ps1
-```
+The invalid MySQL image tag from an earlier revision was replaced with the verified `mysql:8.4.11` tag. Update the repository before retrying.
 
 ### Node.js is an older version
 
-The setup script checks the exact required Node.js version. For this project the baseline is Node.js `24.19.0`. If an older version such as Node.js 18 is installed, rerun the updated setup script; it will install the required Node.js MSI and re-check the active version.
+The setup script enforces Node.js `24.19.0`.
 
-### Java is already installed but the wrong major is active
+### Java is the wrong major
 
-The setup script checks for Java 25. If another Java major is active, install Temurin 25 through the setup script and reopen PowerShell if Windows PATH changes are not visible immediately.
+The setup script enforces Java 25.
 
 ### Docker is not running
 
-Start Docker Desktop on Windows or ensure the Docker daemon is running on Linux, then rerun the start/setup script.
+Start Docker Desktop on Windows or the Docker daemon on Linux.
 
 ### PowerShell blocks scripts
 
@@ -273,19 +266,24 @@ Start Docker Desktop on Windows or ensure the Docker daemon is running on Linux,
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
-Then run the script again.
+### Port 80 or 443 is unavailable on Windows
 
-### Port 80 is already in use
+Normal local mode does **not** require host ports 80/443. The defaults are:
 
-Stop the application using port 80 or change the local NGINX port mapping in `docker-compose.yml`.
+```text
+VANTED_HTTP_PORT=8080
+VANTED_HTTPS_PORT=8443
+```
+
+Only change these when you specifically need another host port.
 
 ### I need a completely clean environment
 
-Use the platform-specific `reset-local-*` script from section 5.
+Use the platform-specific `reset-local-*` script.
 
 ## 11. Version policy
 
-Use GA/stable releases only. Do not use milestone, release-candidate, nightly or preview versions in production. Container tags are pinned rather than `latest`, and every pinned tag must be verified to exist in its registry before being committed.
+Use GA/stable releases only. Do not use milestone, release-candidate, nightly or preview versions in production. Container tags are pinned rather than `latest`, and every pinned tag must be verified to exist before being committed.
 
 See `../VERSIONS.md` for the project's supported dependency baseline and upgrade policy.
 
