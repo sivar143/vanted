@@ -1,28 +1,32 @@
 # Vanted Platform — Supported Stable Release Baseline
 
-This project intentionally uses current stable releases that are supported by the surrounding stack, rather than preview/milestone builds.
+Vanted uses a verified, stable, supported dependency set. We prefer the latest supported LTS runtime where that reduces compatibility risk, and we never use preview, milestone, RC, beta, snapshot, or nightly releases in production.
 
 | Component | Baseline | Policy |
 |---|---|---|
-| Angular | 22.1.x | Active supported major; track latest 22.1 patch |
-| Node.js | 24.19.0 LTS | Use the latest LTS line compatible with Angular |
-| Java | 25 LTS | Use the latest Java 25 security update |
-| Spring Boot | 4.1.1 | Stable GA release; do not use 4.2 milestones |
-| MySQL | 8.4.12 | LTS line; patch upgrades are preferred |
+| Angular | 22.1.x | Active supported major; track the latest 22.1 patch |
+| Node.js | 24.19.0 LTS | Use the current LTS line compatible with Angular |
+| Java | 25.0.4.1 LTS | Use the latest security update on the Java 25 LTS line |
+| Spring Boot | 4.0.8 GA | Current supported stable 4.0 release; do not use 4.2 milestones |
+| MySQL | 8.4.12 LTS | LTS line; patch upgrades are preferred |
 | RabbitMQ | 4.3.5 | Current stable 4.x release |
-| Redis | 8.8.2 | Current stable release |
+| Redis | 8.8.2 | Current stable GA release |
 | NGINX | 1.30.4 | Current stable release |
+| Kubernetes | 1.36.x | Current supported stable line; pin an exact patch in production manifests |
 
 ## Dependency rules
 
 1. No alpha, beta, RC, snapshot, milestone, or nightly dependencies in production.
-2. Framework and runtime major versions are selected as a compatible set, not independently.
-3. Patch releases should be updated promptly when they contain security fixes.
-4. Maven and npm dependency lockfiles are required once each service is fully bootstrapped.
-5. Docker image tags should be explicit rather than `latest`.
-6. Renovate/Dependabot automation will propose version-only upgrades; application behavior changes require tests.
-7. CI must perform dependency, unit, integration, and container checks before merging to `main`.
+2. Runtime/framework versions are selected as a compatible set, not independently.
+3. Security patch releases are applied promptly after CI validation.
+4. Maven and npm lockfiles are required for bootstrapped applications.
+5. Docker image tags are explicit; never use `latest` in committed deployment manifests.
+6. Version-only upgrades are automated; behavior-changing upgrades require tests and review.
+7. CI must run unit, integration, dependency, container, and security checks before merging to `main`.
 
-## Why this is not always the absolute newest major
+## Environment strategy
 
-The newest release is not automatically the safest production choice. For example, Java 26 is a current non-LTS release, while Java 25 is the current LTS baseline; Spring Boot 4.2 is currently a milestone line, while 4.1.1 is a stable GA release. We therefore select the newest stable, supported combination that minimizes compatibility risk.
+- `local` is the default developer environment.
+- `test` is explicit and must not inherit local shortcuts.
+- `production` is explicit and enables production-only deployment features.
+- Feature flags allow production-like functionality to be enabled safely in local debugging without enabling Kubernetes or real external production integrations.
