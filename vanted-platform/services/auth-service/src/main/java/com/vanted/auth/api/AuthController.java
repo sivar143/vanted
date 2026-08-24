@@ -4,24 +4,33 @@ import com.vanted.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.time.Duration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
     private static final String REFRESH_COOKIE = "vanted_refresh";
     private final AuthService authService;
+    private final boolean secureCookies;
+    private final Duration refreshTtl;
 
-    public AuthController(AuthService authService) { this.authService = authService; }
+    public AuthController(AuthService authService,
+                          @Value("${vanted.auth.cookie-secure:false}") boolean secureCookies,
+                          @Value("${vanted.auth.refresh-token-ttl-days:30}") long refreshDays) {
+        this.authService = authService;
+        this.secureCookies = secureCookies;
+        this.refreshTtl = Duration.ofDays(refreshDays);
+    }
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -59,26 +68,20 @@ public class AuthController {
 
     private ResponseEntity<AuthResponse> sessionResponse(AuthService.AuthResult result) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE, result.refreshToken())
-            .httpOnly(true)
-            .secure(false)
-            .sameSite("Lax")
-            .path("/api/auth")
-            .maxAge(Duration.ofDays(30))
-            .build();
+            .httpOnly(true).secure(secureCookies).sameSite("Lax").path("/api/auth")
+            .maxAge(refreshTtl).build();
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString())
             .body(new AuthResponse(result.accessToken(), result.expiresInSeconds(), result.user()));
     }
 
     private String cookie(HttpServletRequest request) {
         if (request.getCookies() == null) return null;
-        for (var c : request.getCookies()) {
-            if (REFRESH_COOKIE.equals(c.getName())) return c.getValue();
-        }
+        for (var c : request.getCookies()) if (REFRESH_COOKIE.equals(c.getName())) return c.getValue();
         return null;
     }
 
     private String expiredCookie() {
         return ResponseCookie.from(REFRESH_COOKIE, "")
-            .httpOnly(true).secure(false).sameSite("Lax").path("/api/auth").maxAge(Duration.ZERO).build().toString();
+            .httpOnly(true).secure(secureCookies).sameSite("Lax").path("/api/auth").maxAge(Duration.ZERO).build().toString();
     }
 }
