@@ -1,3 +1,16 @@
+x-vanted-env: &vanted-env
+  VANTED_ENV: ${VANTED_ENV:-local}
+  VANTED_LOCAL_MODE: ${VANTED_LOCAL_MODE:-true}
+  VANTED_TEST_MODE: ${VANTED_TEST_MODE:-false}
+  VANTED_PRODUCTION_FEATURES: ${VANTED_PRODUCTION_FEATURES:-false}
+  VANTED_KUBERNETES_ENABLED: ${VANTED_KUBERNETES_ENABLED:-false}
+  VANTED_DEBUG_FEATURES: ${VANTED_DEBUG_FEATURES:-false}
+  VANTED_OBSERVABILITY_ENABLED: ${VANTED_OBSERVABILITY_ENABLED:-false}
+  VANTED_REDIS_ENABLED: ${VANTED_REDIS_ENABLED:-true}
+  VANTED_RABBITMQ_ENABLED: ${VANTED_RABBITMQ_ENABLED:-true}
+  VANTED_EXTERNAL_INTEGRATIONS_ENABLED: ${VANTED_EXTERNAL_INTEGRATIONS_ENABLED:-false}
+  VANTED_PAYMENT_MODE: ${VANTED_PAYMENT_MODE:-mock}
+
 services:
   mysql:
     image: mysql:8.4.12
@@ -46,6 +59,7 @@ services:
     build: ./services/auth-service
     restart: unless-stopped
     environment:
+      <<: *vanted-env
       AUTH_DB_URL: jdbc:mysql://mysql:3306/vanted_auth?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       AUTH_DB_USERNAME: ${MYSQL_USER:-vanted}
       AUTH_DB_PASSWORD: ${MYSQL_PASSWORD:-change-me}
@@ -57,6 +71,7 @@ services:
     build: ./services/catalog-service
     restart: unless-stopped
     environment:
+      <<: *vanted-env
       CATALOG_DB_URL: jdbc:mysql://mysql:3306/vanted_catalog?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       CATALOG_DB_USERNAME: ${MYSQL_USER:-vanted}
       CATALOG_DB_PASSWORD: ${MYSQL_PASSWORD:-change-me}
@@ -68,6 +83,7 @@ services:
     build: ./services/order-service
     restart: unless-stopped
     environment:
+      <<: *vanted-env
       ORDER_DB_URL: jdbc:mysql://mysql:3306/vanted_order?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       ORDER_DB_USERNAME: ${MYSQL_USER:-vanted}
       ORDER_DB_PASSWORD: ${MYSQL_PASSWORD:-change-me}
@@ -82,6 +98,7 @@ services:
     build: ./services/payment-service
     restart: unless-stopped
     environment:
+      <<: *vanted-env
       PAYMENT_DB_URL: jdbc:mysql://mysql:3306/vanted_payment?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       PAYMENT_DB_USERNAME: ${MYSQL_USER:-vanted}
       PAYMENT_DB_PASSWORD: ${MYSQL_PASSWORD:-change-me}
@@ -96,6 +113,7 @@ services:
     build: ./services/notification-service
     restart: unless-stopped
     environment:
+      <<: *vanted-env
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-vanted}:${RABBITMQ_PASSWORD:-change-me}@rabbitmq:5672
     depends_on:
       rabbitmq:
@@ -105,6 +123,7 @@ services:
     build: ./backend
     restart: unless-stopped
     environment:
+      <<: *vanted-env
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/vanted?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-vanted}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-change-me}
