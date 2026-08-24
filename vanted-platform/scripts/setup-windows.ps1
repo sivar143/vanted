@@ -28,10 +28,16 @@ function Ensure-Winget {
     }
 }
 
-function Install-WingetPackage([string]$Id, [string]$Name) {
+function Install-WingetPackage([string]$Id, [string]$Name, [string]$Version = $null) {
     Ensure-Winget
-    Write-Step "Installing $Name via winget ($Id)"
-    & winget install --id $Id -e --accept-source-agreements --accept-package-agreements
+    Write-Step "Installing/updating $Name via winget ($Id)"
+
+    $args = @('install', '--id', $Id, '-e', '--accept-source-agreements', '--accept-package-agreements')
+    if ($Version) {
+        $args += @('--version', $Version)
+    }
+
+    & winget @args
     if ($LASTEXITCODE -ne 0) {
         throw "winget failed while installing $Name (exit code $LASTEXITCODE)."
     }
@@ -42,23 +48,12 @@ function Get-NodeVersion {
     return ((node --version) -replace '^v', '').Trim()
 }
 
-function Install-ExactNode {
-    Write-Step "Installing Node.js $NodeLts from the official Node.js MSI"
-    $nodeMsi = Join-Path $env:TEMP "node-v$NodeLts-x64.msi"
-    $nodeUrl = "https://nodejs.org/dist/v$NodeLts/node-v$NodeLts-x64.msi"
-
-    Invoke-WebRequest -Uri $nodeUrl -OutFile $nodeMsi -UseBasicParsing
-    if (-not (Test-Path $nodeMsi)) {
-        throw "Node.js installer was not downloaded: $nodeMsi"
+function Get-JavaVersionText {
+    $output = & cmd.exe /d /c "java -version 2>&1"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Java version check failed with exit code $LASTEXITCODE."
     }
-
-    $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList @('/i', $nodeMsi, '/qn', '/norestart') -Wait -PassThru -Verb RunAs
-    if ($process.ExitCode -notin @(0, 3010)) {
-        throw "Node.js MSI installation failed with exit code $($process.ExitCode)."
-    }
-
-    Remove-Item $nodeMsi -Force -ErrorAction SilentlyContinue
-    Refresh-ProcessPath
+    return ($output | Out-String).Trim()
 }
 
 Write-Step 'Checking Windows'
@@ -74,16 +69,15 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Refresh-ProcessPath
 }
 
-# Angular 22 uses the Node 24 LTS line. We require the exact project baseline rather than
-# accepting an older installed Node version. winget package catalogs can lag, so the exact
-# Node.js MSI from nodejs.org is used for deterministic installation.
+# Angular 22 requires a supported Node LTS line. Do not silently accept an older Node installation.
 Refresh-ProcessPath
 $installedNode = Get-NodeVersion
 if ($installedNode -ne $NodeLts) {
     if ($installedNode) {
         Write-Host "Found Node.js $installedNode; Vanted requires Node.js $NodeLts." -ForegroundColor Yellow
     }
-    Install-ExactNode
+    Install-WingetPackage 'OpenJS.NodeJS.LTS' 'Node.js LTS' $NodeLts
+    Refresh-ProcessPath
 }
 
 $installedNode = Get-NodeVersion
@@ -94,15 +88,20 @@ if ($installedNode -ne $NodeLts) {
 # Java 25 LTS.
 $javaVersion = $null
 if (Get-Command java -ErrorAction SilentlyContinue) {
-    $javaVersion = (java -version 2>&1 | Select-Object -First 1).ToString()
+    $javaVersion = Get-JavaVersionText
 }
 if (-not $javaVersion -or $javaVersion -notmatch '"25\.') {
     Install-WingetPackage 'EclipseAdoptium.Temurin.25.JDK' 'Temurin JDK 25'
     Refresh-ProcessPath
+    $javaVersion = Get-JavaVersionText
+}
+if (-not $javaVersion -or $javaVersion -notmatch '"25\.') {
+    throw "Java 25 could not be made active. Detected: $javaVersion"
 }
 
-# Maven 3.9.16 is installed from the official Apache binary distribution because the
-# Apache Maven package identifier is not consistently available in winget sources.
+# Maven 3.9.16 is not installed through winget because the Apache Maven package
+# identifier is not consistently available in winget sources. Install the official
+# Apache binary distribution directly instead.
 Refresh-ProcessPath
 $mvnCommand = Get-Command mvn -ErrorAction SilentlyContinue
 $mavenIsCorrect = $false
@@ -162,8 +161,7 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
 Write-Step 'Verifying toolchain'
 Write-Host "Node: $(node --version)"
 Write-Host "npm:  $(npm --version)"
-Write-Host 'Java:'
-java -version
+Write-Host "Java: $($javaVersion -split "`r?`n" | Select-Object -First 1)"
 Write-Host 'Maven:'
 mvn -version
 Write-Host "Docker: $(docker --version)"
@@ -171,6 +169,10 @@ Write-Host "Compose: $(docker compose version)"
 
 if ((Get-NodeVersion) -ne $NodeLts) {
     throw "Node.js version mismatch. Expected $NodeLts."
+}
+
+if ($javaVersion -notmatch '"25\.') {
+    throw "Java version mismatch. Expected Java 25. Detected: $javaVersion"
 }
 
 $mavenCheck = (mvn -version 2>&1 | Select-Object -First 1).ToString()
