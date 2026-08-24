@@ -56,6 +56,13 @@ function Get-JavaVersionText {
     return ($output | Out-String).Trim()
 }
 
+function Invoke-NativeChecked([string]$Command, [string[]]$Arguments, [string]$FailureMessage) {
+    & $Command @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "$FailureMessage Exit code: $LASTEXITCODE"
+    }
+}
+
 Write-Step 'Checking Windows'
 if ([Environment]::OSVersion.Platform -ne 'Win32NT') {
     throw 'Run this script from Windows PowerShell/PowerShell 7 on Windows.'
@@ -63,13 +70,11 @@ if ([Environment]::OSVersion.Platform -ne 'Win32NT') {
 
 Ensure-Winget
 
-# Basic host tools.
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Install-WingetPackage 'Git.Git' 'Git'
     Refresh-ProcessPath
 }
 
-# Angular 22 requires a supported Node LTS line. Do not silently accept an older Node installation.
 Refresh-ProcessPath
 $installedNode = Get-NodeVersion
 if ($installedNode -ne $NodeLts) {
@@ -85,7 +90,6 @@ if ($installedNode -ne $NodeLts) {
     throw "Node.js $NodeLts could not be made active. Detected: $installedNode. Close PowerShell, open a new PowerShell window, and rerun this script."
 }
 
-# Java 25 LTS.
 $javaVersion = $null
 if (Get-Command java -ErrorAction SilentlyContinue) {
     $javaVersion = Get-JavaVersionText
@@ -99,9 +103,6 @@ if (-not $javaVersion -or $javaVersion -notmatch '"25\.') {
     throw "Java 25 could not be made active. Detected: $javaVersion"
 }
 
-# Maven 3.9.16 is not installed through winget because the Apache Maven package
-# identifier is not consistently available in winget sources. Install the official
-# Apache binary distribution directly instead.
 Refresh-ProcessPath
 $mvnCommand = Get-Command mvn -ErrorAction SilentlyContinue
 $mavenIsCorrect = $false
@@ -124,7 +125,6 @@ if (-not $mavenIsCorrect) {
         if (-not (Test-Path $mavenZip)) {
             throw "Maven archive was not downloaded: $mavenZip"
         }
-
         Expand-Archive -Path $mavenZip -DestinationPath $toolsRoot -Force
         Remove-Item $mavenZip -Force -ErrorAction SilentlyContinue
     }
@@ -147,7 +147,6 @@ if (-not $mavenIsCorrect) {
     $env:Path = "$mavenBin;$env:Path"
 }
 
-# Docker Desktop.
 Refresh-ProcessPath
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     Install-WingetPackage 'Docker.DockerDesktop' 'Docker Desktop'
@@ -170,11 +169,9 @@ Write-Host "Compose: $(docker compose version)"
 if ((Get-NodeVersion) -ne $NodeLts) {
     throw "Node.js version mismatch. Expected $NodeLts."
 }
-
 if ($javaVersion -notmatch '"25\.') {
     throw "Java version mismatch. Expected Java 25. Detected: $javaVersion"
 }
-
 $mavenCheck = (mvn -version 2>&1 | Select-Object -First 1).ToString()
 if ($mavenCheck -notmatch [regex]::Escape("Apache Maven $MavenVersion")) {
     throw "Maven version mismatch. Expected $MavenVersion. Detected: $mavenCheck"
@@ -185,17 +182,25 @@ if (-not (Test-Path '.env')) {
     Write-Host 'Created .env from .env.example' -ForegroundColor Green
 }
 
+Write-Step 'Validating Docker Compose configuration'
+Invoke-NativeChecked 'docker' @('compose', 'config', '--quiet') 'Docker Compose configuration validation failed.'
+
 Write-Step 'Installing frontend packages'
 Push-Location 'frontend'
-npm install
-Pop-Location
-
-if (-not $SkipLocalBuild) {
-    Write-Step 'Building and starting Vanted'
-    docker compose pull
-    docker compose up -d --build
+try {
+    Invoke-NativeChecked 'npm' @('install') 'Frontend dependency installation failed.'
+} finally {
+    Pop-Location
 }
 
-Write-Step 'Completed'
+if (-not $SkipLocalBuild) {
+    Write-Step 'Pulling required container images'
+    Invoke-NativeChecked 'docker' @('compose', 'pull') 'Docker image pull failed. Check that every image tag exists and Docker Desktop has network access.'
+
+    Write-Step 'Building and starting Vanted'
+    Invoke-NativeChecked 'docker' @('compose', 'up', '-d', '--build') 'Vanted startup failed. Inspect `docker compose ps` and `docker compose logs` for the failing service.'
+}
+
+Write-Step 'Completed successfully'
 Write-Host 'Open: http://localhost' -ForegroundColor Green
 Write-Host 'Check services: docker compose ps' -ForegroundColor Green
