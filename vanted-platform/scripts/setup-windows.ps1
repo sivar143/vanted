@@ -28,16 +28,10 @@ function Ensure-Winget {
     }
 }
 
-function Install-WingetPackage([string]$Id, [string]$Name, [string]$Version = $null) {
+function Install-WingetPackage([string]$Id, [string]$Name) {
     Ensure-Winget
-    Write-Step "Installing/updating $Name via winget ($Id)"
-
-    $args = @('install', '--id', $Id, '-e', '--accept-source-agreements', '--accept-package-agreements')
-    if ($Version) {
-        $args += @('--version', $Version)
-    }
-
-    & winget @args
+    Write-Step "Installing $Name via winget ($Id)"
+    & winget install --id $Id -e --accept-source-agreements --accept-package-agreements
     if ($LASTEXITCODE -ne 0) {
         throw "winget failed while installing $Name (exit code $LASTEXITCODE)."
     }
@@ -46,6 +40,25 @@ function Install-WingetPackage([string]$Id, [string]$Name, [string]$Version = $n
 function Get-NodeVersion {
     if (-not (Get-Command node -ErrorAction SilentlyContinue)) { return $null }
     return ((node --version) -replace '^v', '').Trim()
+}
+
+function Install-ExactNode {
+    Write-Step "Installing Node.js $NodeLts from the official Node.js MSI"
+    $nodeMsi = Join-Path $env:TEMP "node-v$NodeLts-x64.msi"
+    $nodeUrl = "https://nodejs.org/dist/v$NodeLts/node-v$NodeLts-x64.msi"
+
+    Invoke-WebRequest -Uri $nodeUrl -OutFile $nodeMsi -UseBasicParsing
+    if (-not (Test-Path $nodeMsi)) {
+        throw "Node.js installer was not downloaded: $nodeMsi"
+    }
+
+    $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList @('/i', $nodeMsi, '/qn', '/norestart') -Wait -PassThru -Verb RunAs
+    if ($process.ExitCode -notin @(0, 3010)) {
+        throw "Node.js MSI installation failed with exit code $($process.ExitCode)."
+    }
+
+    Remove-Item $nodeMsi -Force -ErrorAction SilentlyContinue
+    Refresh-ProcessPath
 }
 
 Write-Step 'Checking Windows'
@@ -61,15 +74,16 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Refresh-ProcessPath
 }
 
-# Angular 22 requires a supported Node LTS line. Do not silently accept an older Node installation.
+# Angular 22 uses the Node 24 LTS line. We require the exact project baseline rather than
+# accepting an older installed Node version. winget package catalogs can lag, so the exact
+# Node.js MSI from nodejs.org is used for deterministic installation.
 Refresh-ProcessPath
 $installedNode = Get-NodeVersion
 if ($installedNode -ne $NodeLts) {
     if ($installedNode) {
         Write-Host "Found Node.js $installedNode; Vanted requires Node.js $NodeLts." -ForegroundColor Yellow
     }
-    Install-WingetPackage 'OpenJS.NodeJS.LTS' 'Node.js LTS' $NodeLts
-    Refresh-ProcessPath
+    Install-ExactNode
 }
 
 $installedNode = Get-NodeVersion
@@ -87,9 +101,8 @@ if (-not $javaVersion -or $javaVersion -notmatch '"25\.') {
     Refresh-ProcessPath
 }
 
-# Maven 3.9.16 is not installed through winget because the Apache Maven package
-# identifier is not consistently available in winget sources. Install the official
-# Apache binary distribution directly instead.
+# Maven 3.9.16 is installed from the official Apache binary distribution because the
+# Apache Maven package identifier is not consistently available in winget sources.
 Refresh-ProcessPath
 $mvnCommand = Get-Command mvn -ErrorAction SilentlyContinue
 $mavenIsCorrect = $false
