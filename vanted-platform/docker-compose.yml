@@ -18,8 +18,8 @@ services:
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-vanted}
       MYSQL_USER: ${MYSQL_USER:-vanted}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-me}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-root-password}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-test1234}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-test1234}
     volumes:
       - mysql-data:/var/lib/mysql
       - ./mysql/init:/docker-entrypoint-initdb.d:ro
@@ -34,7 +34,7 @@ services:
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-vanted}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-change-me}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-test1234}
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
@@ -46,11 +46,11 @@ services:
   redis:
     image: redis:8.8.2-alpine
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-change-me}"]
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-test1234}"]
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-change-me}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-test1234}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -62,8 +62,8 @@ services:
       <<: *vanted-env
       AUTH_DB_URL: jdbc:mysql://mysql:3306/vanted_auth?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       AUTH_DB_USERNAME: ${MYSQL_USER:-vanted}
-      AUTH_DB_PASSWORD: ${MYSQL_PASSWORD:-change-me}
-      VANTED_JWT_SECRET: ${VANTED_JWT_SECRET:-change-this-development-secret-to-a-long-random-value}
+      AUTH_DB_PASSWORD: ${MYSQL_PASSWORD:-test1234}
+      VANTED_JWT_SECRET: ${VANTED_JWT_SECRET:-test1234-test1234-test1234-test1234}
     depends_on:
       mysql:
         condition: service_healthy
@@ -75,8 +75,8 @@ services:
       <<: *vanted-env
       CATALOG_DB_URL: jdbc:mysql://mysql:3306/vanted_catalog?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       CATALOG_DB_USERNAME: ${MYSQL_USER:-vanted}
-      CATALOG_DB_PASSWORD: ${MYSQL_PASSWORD:-change-me}
-      VANTED_JWT_SECRET: ${VANTED_JWT_SECRET:-change-this-development-secret-to-a-long-random-value}
+      CATALOG_DB_PASSWORD: ${MYSQL_PASSWORD:-test1234}
+      VANTED_JWT_SECRET: ${VANTED_JWT_SECRET:-test1234-test1234-test1234-test1234}
     depends_on:
       mysql:
         condition: service_healthy
@@ -88,9 +88,9 @@ services:
       <<: *vanted-env
       ORDER_DB_URL: jdbc:mysql://mysql:3306/vanted_order?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       ORDER_DB_USERNAME: ${MYSQL_USER:-vanted}
-      ORDER_DB_PASSWORD: ${MYSQL_PASSWORD:-change-me}
-      RABBITMQ_URL: amqp://${RABBITMQ_USER:-vanted}:${RABBITMQ_PASSWORD:-change-me}@rabbitmq:5672
-      VANTED_JWT_SECRET: ${VANTED_JWT_SECRET:-change-this-development-secret-to-a-long-random-value}
+      ORDER_DB_PASSWORD: ${MYSQL_PASSWORD:-test1234}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-vanted}:${RABBITMQ_PASSWORD:-test1234}@rabbitmq:5672
+      VANTED_JWT_SECRET: ${VANTED_JWT_SECRET:-test1234-test1234-test1234-test1234}
     depends_on:
       mysql:
         condition: service_healthy
@@ -104,9 +104,9 @@ services:
       <<: *vanted-env
       PAYMENT_DB_URL: jdbc:mysql://mysql:3306/vanted_payment?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       PAYMENT_DB_USERNAME: ${MYSQL_USER:-vanted}
-      PAYMENT_DB_PASSWORD: ${MYSQL_PASSWORD:-change-me}
-      RABBITMQ_URL: amqp://${RABBITMQ_USER:-vanted}:${RABBITMQ_PASSWORD:-change-me}@rabbitmq:5672
-      VANTED_JWT_SECRET: ${VANTED_JWT_SECRET:-change-this-development-secret-to-a-long-random-value}
+      PAYMENT_DB_PASSWORD: ${MYSQL_PASSWORD:-test1234}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-vanted}:${RABBITMQ_PASSWORD:-test1234}@rabbitmq:5672
+      VANTED_JWT_SECRET: ${VANTED_JWT_SECRET:-test1234-test1234-test1234-test1234}
     depends_on:
       mysql:
         condition: service_healthy
@@ -118,7 +118,7 @@ services:
     restart: unless-stopped
     environment:
       <<: *vanted-env
-      RABBITMQ_URL: amqp://${RABBITMQ_USER:-vanted}:${RABBITMQ_PASSWORD:-change-me}@rabbitmq:5672
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-vanted}:${RABBITMQ_PASSWORD:-test1234}@rabbitmq:5672
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -130,8 +130,8 @@ services:
       <<: *vanted-env
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/vanted?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-vanted}
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-change-me}
-      VANTED_JWT_SECRET: ${VANTED_JWT_SECRET:-change-this-development-secret-to-a-long-random-value}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-test1234}
+      VANTED_JWT_SECRET: ${VANTED_JWT_SECRET:-test1234-test1234-test1234-test1234}
     profiles: [compat]
     depends_on:
       mysql:
