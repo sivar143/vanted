@@ -8,8 +8,34 @@
       "sourceRoot": "src",
       "prefix": "vanted",
       "architect": {
-        "build": {"builder": "@angular/build:application", "options": {"browser": "src/main.ts", "tsConfig": "tsconfig.app.json", "index": "src/index.html", "styles": ["src/styles.css"]}},
-        "serve": {"builder": "@angular/build:dev-server", "configurations": {"production": {"buildTarget": "vanted-frontend:build:production"}, "development": {"buildTarget": "vanted-frontend:build:development"}}, "defaultConfiguration": "development"}
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "src/main.ts",
+            "tsConfig": "tsconfig.app.json",
+            "index": "src/index.html",
+            "styles": ["src/styles.css"]
+          },
+          "configurations": {
+            "production": {
+              "optimization": true,
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": { "buildTarget": "vanted-frontend:build:production" },
+            "development": { "buildTarget": "vanted-frontend:build:development" }
+          },
+          "defaultConfiguration": "development"
+        }
       }
     }
   }
