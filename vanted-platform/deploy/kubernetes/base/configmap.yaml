@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vanted-runtime
+  labels:
+    app.kubernetes.io/part-of: vanted
+data:
+  VANTED_ENV: production
+  VANTED_LOCAL_MODE: "false"
+  VANTED_TEST_MODE: "false"
+  VANTED_PRODUCTION_FEATURES: "true"
+  VANTED_KUBERNETES_ENABLED: "true"
+  VANTED_DEBUG_FEATURES: "false"
+  VANTED_OBSERVABILITY_ENABLED: "true"
+  VANTED_REDIS_ENABLED: "true"
+  VANTED_RABBITMQ_ENABLED: "true"
+  VANTED_EXTERNAL_INTEGRATIONS_ENABLED: "true"
+  VANTED_PAYMENT_MODE: live
