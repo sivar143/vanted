@@ -1,6 +1,6 @@
 services:
   mysql:
-    image: mysql:8.4
+    image: mysql:8.4.12
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-vanted}
@@ -17,7 +17,7 @@ services:
       retries: 20
 
   rabbitmq:
-    image: rabbitmq:4-management-alpine
+    image: rabbitmq:4.3.5-management-alpine
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-vanted}
@@ -31,7 +31,7 @@ services:
       retries: 20
 
   redis:
-    image: redis:8-alpine
+    image: redis:8.8.2-alpine
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-change-me}"]
     volumes:
@@ -124,7 +124,7 @@ services:
       - payment-service
 
   nginx:
-    image: nginx:1.29-alpine
+    image: nginx:1.30.4-alpine
     restart: unless-stopped
     ports:
       - "80:80"
