@@ -38,6 +38,8 @@ cd scripts
 
 The Windows bootstrap enforces the project's exact Node.js and Maven baselines. Node.js is installed from the official Node.js MSI when the detected version is wrong; Maven 3.9.16 is installed from the official Apache binary distribution because the Maven package is not consistently available through winget. The script refreshes the current process PATH after installation and also persists the Maven user PATH.
 
+The script now **fails fast** if frontend dependencies cannot be installed, Docker image pulls fail, or the application cannot be started. It will never print `Completed successfully` after one of those operations fails.
+
 If Docker Desktop was installed by the script but the Docker command is not yet available, start Docker Desktop, close/reopen PowerShell, and rerun the setup script.
 
 ### Debian/Ubuntu Linux
@@ -171,6 +173,7 @@ The bootstrap scripts check or install the host development toolchain:
 - Git
 - Node.js 24.19.0 LTS
 - Angular 22.1 stable line
+- TypeScript 6.0.3 (Angular 22.1 compatible)
 - Java 25 LTS
 - Apache Maven 3.9.16
 - Docker Engine/Desktop
@@ -230,6 +233,28 @@ cd vanted-platform\scripts
 
 The bootstrap installs Maven into `%LOCALAPPDATA%\Vanted\tools\apache-maven-3.9.16`, sets `MAVEN_HOME`, updates the user PATH and updates the current PowerShell process PATH.
 
+### Angular/npm reports a TypeScript peer-dependency conflict
+
+Angular 22.1 requires TypeScript `>=6.0.0 <6.1.0`. The repository now pins TypeScript to the compatible `6.0.3` release. Update to the latest `main` before retrying:
+
+```powershell
+git pull origin main
+cd vanted-platform\scripts
+.\setup-windows.ps1
+```
+
+Do **not** solve this with `--force` or `--legacy-peer-deps`; the project should use a genuinely compatible dependency set.
+
+### Docker reports `mysql:8.4.12: not found`
+
+That was an invalid image tag in an earlier repository revision. The current Compose file uses the verified official MySQL `8.4.11` image tag. Update your local repository before rerunning:
+
+```powershell
+git pull origin main
+cd vanted-platform\scripts
+.\setup-windows.ps1
+```
+
 ### Node.js is an older version
 
 The setup script checks the exact required Node.js version. For this project the baseline is Node.js `24.19.0`. If an older version such as Node.js 18 is installed, rerun the updated setup script; it will install the required Node.js MSI and re-check the active version.
@@ -260,7 +285,7 @@ Use the platform-specific `reset-local-*` script from section 5.
 
 ## 11. Version policy
 
-Use GA/stable releases only. Do not use milestone, release-candidate, nightly or preview versions in production. Container tags are pinned rather than `latest`.
+Use GA/stable releases only. Do not use milestone, release-candidate, nightly or preview versions in production. Container tags are pinned rather than `latest`, and every pinned tag must be verified to exist in its registry before being committed.
 
 See `../VERSIONS.md` for the project's supported dependency baseline and upgrade policy.
 
