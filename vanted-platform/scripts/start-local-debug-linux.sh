@@ -14,6 +14,7 @@ sed -i 's/^VANTED_PRODUCTION_FEATURES=.*/VANTED_PRODUCTION_FEATURES=false/' .env
 
 docker compose --env-file .env.debug up -d --build
 
-echo "Vanted local debug environment is running at http://localhost"
+echo "Vanted local debug environment is running at http://localhost:8080"
+echo "RabbitMQ management: http://localhost:15672"
 echo "Production-like features are enabled with sandbox integrations only."
 docker compose --env-file .env.debug ps
