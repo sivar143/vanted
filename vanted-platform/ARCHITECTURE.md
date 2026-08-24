@@ -2,56 +2,71 @@
 
 ## Technology baseline
 
-- Angular 22.x for the customer and admin web applications.
+- Angular 22.x for customer and admin web applications.
 - Java 25 LTS for backend services.
-- Spring Boot 4.1.1 for services.
+- Spring Boot 4.0.8 GA for services.
 - MySQL 8.4 LTS for transactional persistence.
 - NGINX at the internet edge for TLS termination, security headers, rate limiting and routing.
-- RabbitMQ for durable domain events and asynchronous workflows.
-- Redis for caching, short-lived state, distributed idempotency and rate-limit support.
+- RabbitMQ 4.3.x for durable domain events and asynchronous workflows.
+- Redis 8.8.x for cache, short-lived state, distributed idempotency and rate-limit support.
 - Flyway for schema migrations.
-- Micrometer + OpenTelemetry for metrics and traces.
-- Docker for local and production packaging.
+- Micrometer + OpenTelemetry for metrics and traces when the observability feature is enabled.
+- Docker Compose for local development.
+- Kubernetes 1.36.x + Helm/Kustomize for production deployment.
 
-Angular 22 is the currently active Angular major in August 2026. Spring Boot 4.1.1 is the current 4.1 production release line. Java 25 is the current LTS release and MySQL 8.4 is an LTS series.
+## Environment model
+
+The application has three explicit runtime environments:
+
+- `local`: default developer workflow. `VANTED_LOCAL_MODE=true` and Kubernetes is disabled.
+- `test`: automated/integration test environment. Local shortcuts are disabled.
+- `production`: production deployment. Kubernetes and production-only infrastructure are enabled by deployment configuration.
+
+Environment mode is deliberately separate from feature flags. This allows a developer to reproduce production-like behavior locally without making the whole local environment behave like production.
+
+### Feature flags
+
+Core flags include:
+
+- `VANTED_KUBERNETES_ENABLED`
+- `VANTED_PRODUCTION_FEATURES`
+- `VANTED_DEBUG_FEATURES`
+- `VANTED_OBSERVABILITY_ENABLED`
+- `VANTED_REDIS_ENABLED`
+- `VANTED_RABBITMQ_ENABLED`
+- `VANTED_PAYMENT_MODE` (`mock`, `sandbox`, `live`)
+- `VANTED_EXTERNAL_INTEGRATIONS_ENABLED`
+
+Local debug may enable observability, Redis, RabbitMQ, distributed tracing, sandbox payments and other production-like behavior. It must never enable real production credentials or endpoints.
 
 ## Service boundaries
 
 ```text
                          Internet
                             |
-                         NGINX
+                         NGINX / Ingress
                             |
                     Angular Web Application
                             |
-                   REST / JSON over HTTPS
+                    API routing / HTTPS
                             |
-                 +----------+-----------+
-                 |                      |
-           auth-service         catalog-service
-                 |                      |
-             MySQL auth            MySQL catalog
-                 |
-                 +-----------+----------+
-                             |
-                       order-service
-                             |
-                    MySQL order database
-                             |
-                    payment-service
-                             |
-                    payment provider
+       +------------+------+-----------+-------------+
+       |            |                  |             |
+   auth-service catalog-service  order-service  payment-service
+       |            |                  |             |
+    auth DB      catalog DB        order DB      payment DB
+                                      |
+                                  RabbitMQ
+                                /     |      \
+                         payment  notification  analytics/events
 
-        RabbitMQ <--------- domain events --------->
-          |                 |              |
-   notification-service   order        payment
-          |
-       email/SMS
+             Redis: cache + idempotency + rate limits
 
-        Redis: cache + idempotency + short lived distributed state
+              Production deployment: Kubernetes
+              Local development: Docker Compose
 ```
 
-## Why these services
+## Service responsibilities
 
 - **auth-service** owns identity, credentials, refresh tokens, roles and authentication events.
 - **catalog-service** owns categories, services, service metadata and discovery queries.
@@ -63,44 +78,46 @@ We intentionally do not create a separate microservice for every small domain. A
 
 ## Concurrency and multithreading
 
-1. Spring MVC request handling remains non-blocking at the edge of the workflow wherever possible.
-2. Java 25 virtual threads are enabled for I/O-heavy service workloads where they improve throughput without requiring an application-level thread pool for every request.
-3. Explicit bounded executors are used for background work such as notifications, reconciliation and export jobs so a burst cannot exhaust JVM resources.
-4. CompletableFuture is used for independent parallel reads where latency benefits from concurrency.
-5. RabbitMQ consumers process domain events asynchronously and use controlled listener concurrency.
-6. Every externally retried command must be idempotent. Payment and order commands use an idempotency key.
-7. Database transactions are kept short and are never held open across remote HTTP or RabbitMQ calls.
-8. Optimistic locking protects hot order/payment rows against lost updates.
-9. Scheduled jobs use distributed locking so multiple service replicas cannot execute the same job concurrently.
+1. Java 25 virtual threads are enabled for suitable I/O-heavy workloads.
+2. Explicit bounded executors are used for notifications, reconciliation, exports and other background work so bursts cannot exhaust JVM resources.
+3. `CompletableFuture` is used only where independent operations genuinely benefit from parallel execution.
+4. RabbitMQ consumers use controlled concurrency and idempotent handlers.
+5. Database transactions remain short and never span remote HTTP or message-broker calls.
+6. Optimistic locking protects hot order/payment rows.
+7. Scheduled jobs use distributed locks in deployments with multiple replicas.
 
 ## Resilience
 
-- Timeouts for every outbound HTTP call.
-- Retry only safe/transient operations with exponential backoff and jitter.
+- Timeouts for outbound HTTP calls.
+- Retry only transient/safe operations with exponential backoff and jitter.
 - Circuit breakers around payment and notification providers.
 - Bulkheads for expensive external operations.
 - Dead-letter queues for events that cannot be processed.
-- Transactional outbox for changes that must atomically publish an event after a database commit.
-- Idempotent consumers so duplicate delivery is safe.
+- Transactional outbox for database changes that must publish events atomically after commit.
+- Idempotent consumers and idempotency keys for order/payment commands.
 
 ## Security
 
-- NGINX is the public entry point; internal services are not exposed directly to the internet.
+- NGINX/Ingress is the public entry point; internal services are not exposed directly to the internet.
 - JWT access tokens and refresh tokens are issued by auth-service.
 - Every service validates JWT signatures and required roles/scopes.
-- Secrets are supplied through environment variables or a production secret manager; no credentials are committed.
-- TLS between external clients and NGINX. Internal service TLS/mTLS can be enabled in production when the deployment environment requires it.
-- CSP, HSTS, X-Content-Type-Options, Referrer-Policy and frame protections at NGINX.
-- Rate limiting at the edge and application-level abuse controls for login/payment endpoints.
+- Secrets are supplied through environment variables, Docker secrets for local infrastructure, or Kubernetes Secrets/external secret managers in production.
+- TLS terminates at the edge; internal mTLS can be enabled in production where required.
+- CSP, HSTS, X-Content-Type-Options, Referrer-Policy and frame protections are enforced at the edge.
+- Rate limiting exists at the edge and application level for sensitive workflows.
 
 ## Data ownership
 
-Each service owns its schema and migration history. Cross-service relationships use identifiers and events rather than foreign keys between databases. Reporting across domains is handled through read models or an analytics pipeline, not cross-service SQL joins.
+Each service owns its schema and migration history. Cross-service relationships use identifiers and events rather than foreign keys between service databases. Cross-domain reporting is handled through read models or analytics pipelines.
 
 ## Observability
 
-Every request and message should carry a correlation/trace ID. Metrics include latency, error rate, throughput, queue depth, DB pool saturation, JVM memory/CPU and external provider health. Logs are structured JSON and never contain passwords, access tokens or payment secrets.
+When `VANTED_OBSERVABILITY_ENABLED=true`, services expose metrics and tracing using Micrometer/OpenTelemetry. Requests and messages carry correlation/trace IDs. Logs are structured and never contain passwords, tokens or payment secrets.
 
-## Evolution strategy
+## Deployment strategy
 
-The existing `backend/` module is retained temporarily as a compatibility reference while the new services become functional. New production functionality should be implemented in the service that owns the domain. Once feature parity is reached, the compatibility application can be retired.
+- **Local:** Docker Compose; no Kubernetes dependency.
+- **Test:** isolated test infrastructure, suitable for CI and integration tests.
+- **Production:** Kubernetes 1.36.x, with Helm/Kustomize overlays, HPA, readiness/liveness probes, PodDisruptionBudgets, NetworkPolicies and external secret management.
+
+The existing `backend/` application is retained temporarily as a compatibility reference while the new microservices reach feature parity. New production functionality belongs in the service that owns the domain.
