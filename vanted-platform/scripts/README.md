@@ -36,7 +36,9 @@ cd scripts
 .\setup-windows.ps1
 ```
 
-If Docker Desktop was installed by the script but the Docker command is not yet available, start Docker Desktop, reopen PowerShell, and rerun the setup script.
+The Windows bootstrap enforces the project's exact Node.js and Maven baselines. Node.js is installed from the official Node.js MSI when the detected version is wrong; Maven 3.9.16 is installed from the official Apache binary distribution because the Maven package is not consistently available through winget. The script refreshes the current process PATH after installation and also persists the Maven user PATH.
+
+If Docker Desktop was installed by the script but the Docker command is not yet available, start Docker Desktop, close/reopen PowerShell, and rerun the setup script.
 
 ### Debian/Ubuntu Linux
 
@@ -215,6 +217,26 @@ Environment flags are not treated as the sole security boundary. Authentication,
 - NGINX: public entry point on port 80; HTTPS is used in production deployment
 
 ## 10. Common first-run problems
+
+### `mvn` is not recognized
+
+First update your local copy of the repository because the Windows bootstrap has been hardened to install Maven directly from Apache:
+
+```powershell
+git pull origin main
+cd vanted-platform\scripts
+.\setup-windows.ps1
+```
+
+The bootstrap installs Maven into `%LOCALAPPDATA%\Vanted\tools\apache-maven-3.9.16`, sets `MAVEN_HOME`, updates the user PATH and updates the current PowerShell process PATH.
+
+### Node.js is an older version
+
+The setup script checks the exact required Node.js version. For this project the baseline is Node.js `24.19.0`. If an older version such as Node.js 18 is installed, rerun the updated setup script; it will install the required Node.js MSI and re-check the active version.
+
+### Java is already installed but the wrong major is active
+
+The setup script checks for Java 25. If another Java major is active, install Temurin 25 through the setup script and reopen PowerShell if Windows PATH changes are not visible immediately.
 
 ### Docker is not running
 
