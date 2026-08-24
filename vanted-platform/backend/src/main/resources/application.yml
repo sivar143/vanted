@@ -10,11 +10,11 @@ spring:
       ddl-auto: validate
     open-in-view: false
   flyway:
-    enabled: true
+    enabled: ${VANTED_FLYWAY_ENABLED:true}
     locations: classpath:db/migration
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
   forward-headers-strategy: framework
 
 management:
@@ -24,5 +24,10 @@ management:
         include: health,info
 
 vanted:
+  env: ${VANTED_ENV:local}
+  local-mode: ${VANTED_LOCAL_MODE:true}
+  test-mode: ${VANTED_TEST_MODE:false}
+  production-features: ${VANTED_PRODUCTION_FEATURES:false}
+  kubernetes-enabled: ${VANTED_KUBERNETES_ENABLED:false}
   security:
     jwt-secret: ${VANTED_JWT_SECRET:change-this-development-secret-to-a-long-random-value}
