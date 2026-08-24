@@ -1,0 +1,15 @@
+# Local secrets and generated environment files
+.env
+.env.*
+!.env.example
+
+# Local build output
+**/target/
+frontend/dist/
+frontend/.angular/
+
+# Local IDE/OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
