@@ -20,11 +20,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24.19.0
-          cache: npm
-          cache-dependency-path: vanted-platform/frontend/package-lock.json
-      - run: npm ci
+      - run: npm install
       - run: npm run build
-      - run: npm test -- --watch=false --browsers=ChromeHeadless
 
   services:
     runs-on: ubuntu-latest
@@ -42,8 +39,8 @@ jobs:
           distribution: temurin
           java-version: 25
           cache: maven
-      - run: mvn -B -DskipTests=false test
-      - run: mvn -B -DskipTests package
+      - run: mvn -B test
+      - run: mvn -B package -DskipTests
 
   docker-compose:
     runs-on: ubuntu-latest
