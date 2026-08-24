@@ -10,48 +10,160 @@ Set-Location $Root
 $NodeLts = '24.19.0'
 $JavaMajor = '25'
 $MavenVersion = '3.9.16'
+$MavenHome = Join-Path $env:LOCALAPPDATA "Vanted\tools\apache-maven-$MavenVersion"
 
 function Write-Step([string]$Message) {
     Write-Host "`n==> $Message" -ForegroundColor Cyan
 }
 
-function Ensure-Command([string]$Name, [string]$WingetId) {
-    if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-        if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-            throw "'$Name' is missing and winget is unavailable. Install Windows App Installer from Microsoft Store, then rerun this script."
-        }
-        Write-Step "Installing $Name via winget ($WingetId)"
-        winget install --id $WingetId -e --accept-source-agreements --accept-package-agreements
+function Refresh-ProcessPath {
+    $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+    $env:Path = "$userPath;$machinePath"
+}
+
+function Ensure-Winget {
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+        throw "winget is required to install Windows packages. Install Microsoft App Installer/winget, then reopen PowerShell and rerun this script."
     }
 }
 
-Write-Step 'Checking Windows 11'
-if ([Environment]::OSVersion.Platform -ne 'Win32NT') { throw 'Run this script from Windows PowerShell/PowerShell 7 on Windows 11.' }
+function Install-WingetPackage([string]$Id, [string]$Name, [string]$Version = $null) {
+    Ensure-Winget
+    Write-Step "Installing/updating $Name via winget ($Id)"
 
-Ensure-Command 'git' 'Git.Git'
-Ensure-Command 'node' 'OpenJS.NodeJS.LTS'
-Ensure-Command 'java' 'EclipseAdoptium.Temurin.25.JDK'
-Ensure-Command 'mvn' 'Apache.Maven'
-Ensure-Command 'docker' 'Docker.DockerDesktop'
+    $args = @('install', '--id', $Id, '-e', '--accept-source-agreements', '--accept-package-agreements')
+    if ($Version) {
+        $args += @('--version', $Version)
+    }
 
-Write-Step 'Refreshing PATH after installs'
-$machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
-$userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-$env:Path = "$userPath;$machinePath"
-
-if (-not (Get-Command 'docker' -ErrorAction SilentlyContinue)) {
-    throw 'Docker Desktop was installed but is not yet available in PATH. Start Docker Desktop, reopen PowerShell, and rerun this script.'
+    & winget @args
+    if ($LASTEXITCODE -ne 0) {
+        throw "winget failed while installing $Name (exit code $LASTEXITCODE)."
+    }
 }
 
-if (-not (Get-Command 'docker' -ErrorAction SilentlyContinue)) { throw 'Docker CLI not found.' }
+function Get-NodeVersion {
+    if (-not (Get-Command node -ErrorAction SilentlyContinue)) { return $null }
+    return ((node --version) -replace '^v', '').Trim()
+}
+
+Write-Step 'Checking Windows'
+if ([Environment]::OSVersion.Platform -ne 'Win32NT') {
+    throw 'Run this script from Windows PowerShell/PowerShell 7 on Windows.'
+}
+
+Ensure-Winget
+
+# Basic host tools.
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    Install-WingetPackage 'Git.Git' 'Git'
+    Refresh-ProcessPath
+}
+
+# Angular 22 requires a supported Node LTS line. Do not silently accept an older Node installation.
+Refresh-ProcessPath
+$installedNode = Get-NodeVersion
+if ($installedNode -ne $NodeLts) {
+    if ($installedNode) {
+        Write-Host "Found Node.js $installedNode; Vanted requires Node.js $NodeLts." -ForegroundColor Yellow
+    }
+    Install-WingetPackage 'OpenJS.NodeJS.LTS' 'Node.js LTS' $NodeLts
+    Refresh-ProcessPath
+}
+
+$installedNode = Get-NodeVersion
+if ($installedNode -ne $NodeLts) {
+    throw "Node.js $NodeLts could not be made active. Detected: $installedNode. Close PowerShell, open a new PowerShell window, and rerun this script."
+}
+
+# Java 25 LTS.
+$javaVersion = $null
+if (Get-Command java -ErrorAction SilentlyContinue) {
+    $javaVersion = (java -version 2>&1 | Select-Object -First 1).ToString()
+}
+if (-not $javaVersion -or $javaVersion -notmatch '"25\.') {
+    Install-WingetPackage 'EclipseAdoptium.Temurin.25.JDK' 'Temurin JDK 25'
+    Refresh-ProcessPath
+}
+
+# Maven 3.9.16 is not installed through winget because the Apache Maven package
+# identifier is not consistently available in winget sources. Install the official
+# Apache binary distribution directly instead.
+Refresh-ProcessPath
+$mvnCommand = Get-Command mvn -ErrorAction SilentlyContinue
+$mavenIsCorrect = $false
+if ($mvnCommand) {
+    $mavenVersionLine = (& mvn -version 2>$null | Select-Object -First 1)
+    $mavenIsCorrect = $mavenVersionLine -match [regex]::Escape("Apache Maven $MavenVersion")
+}
+
+if (-not $mavenIsCorrect) {
+    Write-Step "Installing Apache Maven $MavenVersion from the official Apache distribution"
+
+    $toolsRoot = Split-Path -Parent $MavenHome
+    New-Item -ItemType Directory -Path $toolsRoot -Force | Out-Null
+
+    $mavenZip = Join-Path $env:TEMP "apache-maven-$MavenVersion-bin.zip"
+    $mavenUrl = "https://dlcdn.apache.org/maven/maven-3/$MavenVersion/binaries/apache-maven-$MavenVersion-bin.zip"
+
+    if (-not (Test-Path $MavenHome)) {
+        Invoke-WebRequest -Uri $mavenUrl -OutFile $mavenZip -UseBasicParsing
+        if (-not (Test-Path $mavenZip)) {
+            throw "Maven archive was not downloaded: $mavenZip"
+        }
+
+        Expand-Archive -Path $mavenZip -DestinationPath $toolsRoot -Force
+        Remove-Item $mavenZip -Force -ErrorAction SilentlyContinue
+    }
+
+    if (-not (Test-Path (Join-Path $MavenHome 'bin\mvn.cmd'))) {
+        throw "Maven installation is incomplete. Expected: $(Join-Path $MavenHome 'bin\mvn.cmd')"
+    }
+
+    [Environment]::SetEnvironmentVariable('MAVEN_HOME', $MavenHome, 'User')
+
+    $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+    $mavenBin = Join-Path $MavenHome 'bin'
+    $pathEntries = @($userPath -split ';' | Where-Object { $_ -and $_.Trim() })
+    if ($pathEntries -notcontains $mavenBin) {
+        [Environment]::SetEnvironmentVariable('Path', (($pathEntries + $mavenBin) -join ';'), 'User')
+    }
+
+    $env:MAVEN_HOME = $MavenHome
+    Refresh-ProcessPath
+    $env:Path = "$mavenBin;$env:Path"
+}
+
+# Docker Desktop.
+Refresh-ProcessPath
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    Install-WingetPackage 'Docker.DockerDesktop' 'Docker Desktop'
+    Refresh-ProcessPath
+}
+
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    throw 'Docker CLI is not available. Start Docker Desktop, close PowerShell, open a new PowerShell window, and rerun this script.'
+}
 
 Write-Step 'Verifying toolchain'
-node --version
-npm --version
+Write-Host "Node: $(node --version)"
+Write-Host "npm:  $(npm --version)"
+Write-Host 'Java:'
 java -version
+Write-Host 'Maven:'
 mvn -version
-docker --version
-docker compose version
+Write-Host "Docker: $(docker --version)"
+Write-Host "Compose: $(docker compose version)"
+
+if ((Get-NodeVersion) -ne $NodeLts) {
+    throw "Node.js version mismatch. Expected $NodeLts."
+}
+
+$mavenCheck = (mvn -version 2>&1 | Select-Object -First 1).ToString()
+if ($mavenCheck -notmatch [regex]::Escape("Apache Maven $MavenVersion")) {
+    throw "Maven version mismatch. Expected $MavenVersion. Detected: $mavenCheck"
+}
 
 if (-not (Test-Path '.env')) {
     Copy-Item '.env.example' '.env'
