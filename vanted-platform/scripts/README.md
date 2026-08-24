@@ -1,10 +1,8 @@
 # Vanted local setup scripts
 
-These scripts are intended for a clean developer workstation.
+These scripts are for deterministic local development on Windows 11 and Debian/Ubuntu Linux.
 
 ## Windows 11
-
-Use PowerShell 7 or Windows PowerShell as Administrator for the first run if winget needs elevated installation permissions.
 
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
@@ -12,29 +10,26 @@ cd vanted-platform\scripts
 .\setup-windows.ps1
 ```
 
-After the initial setup, start the stack with:
+Normal local runtime:
 
 ```powershell
 .\start-windows.ps1
 ```
 
-Stop it with:
+Production-like local debugging with sandbox integrations:
+
+```powershell
+.\start-local-debug-windows.ps1
+```
+
+Stop/reset local infrastructure:
 
 ```powershell
 .\stop-windows.ps1
-```
-
-To destroy local containers and volumes and rebuild from scratch:
-
-```powershell
 .\reset-local-windows.ps1
 ```
 
-Docker Desktop must be running before `docker compose` commands can complete.
-
 ## Linux
-
-The current bootstrap targets Debian/Ubuntu Linux.
 
 ```bash
 cd vanted-platform
@@ -42,16 +37,22 @@ chmod +x scripts/*.sh
 ./scripts/setup-linux.sh
 ```
 
-After the initial setup:
+Normal local runtime:
 
 ```bash
 ./scripts/start-linux.sh
-./scripts/stop-linux.sh
 ```
 
-To destroy local containers and database/message/cache volumes and rebuild:
+Production-like local debugging with sandbox integrations:
 
 ```bash
+./scripts/start-local-debug-linux.sh
+```
+
+Stop/reset local infrastructure:
+
+```bash
+./scripts/stop-linux.sh
 ./scripts/reset-local-linux.sh
 ```
 
@@ -65,18 +66,19 @@ To destroy local containers and database/message/cache volumes and rebuild:
 - Docker Engine/Desktop
 - Docker Compose
 - Project npm dependencies
-- Project environment file from `.env.example`
 
-The application dependencies themselves run in containers, so a developer does not need to install MySQL, RabbitMQ, Redis, or NGINX directly on the host.
+MySQL, RabbitMQ, Redis and NGINX run in containers; they do not need to be installed directly on the host.
+
+## Environment behavior
+
+Normal local mode is the default and uses mock/disabled external integrations. The debug launcher creates an untracked `.env.debug` file and enables operational features such as observability and sandbox integrations while keeping Kubernetes disabled and production features false.
 
 ## Local endpoints
 
 - Application: http://localhost
 - RabbitMQ management UI: http://localhost:15672
-- Backend services are intentionally not published directly; NGINX is the public entry point.
+- Backend services are not published directly; NGINX is the public entry point.
 
 ## Version policy
 
-Use GA/stable releases only. Do not use milestone, release-candidate, nightly, or preview versions in the application unless a documented exception is approved.
-
-The repository currently pins the major/minor baselines in source files and pins container image versions in Docker Compose. Re-run the version verification before planned dependency upgrades.
+Use GA/stable releases only. Do not use milestone, release-candidate, nightly or preview versions in production. Container tags are pinned rather than `latest`.
