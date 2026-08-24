@@ -125,6 +125,7 @@ if (-not $mavenIsCorrect) {
         if (-not (Test-Path $mavenZip)) {
             throw "Maven archive was not downloaded: $mavenZip"
         }
+
         Expand-Archive -Path $mavenZip -DestinationPath $toolsRoot -Force
         Remove-Item $mavenZip -Force -ErrorAction SilentlyContinue
     }
@@ -202,5 +203,6 @@ if (-not $SkipLocalBuild) {
 }
 
 Write-Step 'Completed successfully'
-Write-Host 'Open: http://localhost' -ForegroundColor Green
+Write-Host 'Open: http://localhost:8080' -ForegroundColor Green
+Write-Host 'RabbitMQ management: http://localhost:15672' -ForegroundColor Green
 Write-Host 'Check services: docker compose ps' -ForegroundColor Green
