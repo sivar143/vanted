@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: payment-service
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${PAYMENT_DB_URL:jdbc:mysql://mysql-payment:3306/vanted_payment?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    username: ${PAYMENT_DB_USERNAME:vanted}
+    password: ${PAYMENT_DB_PASSWORD:change-me}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  rabbitmq:
+    addresses: ${RABBITMQ_URL:amqp://vanted:change-me@rabbitmq:5672}
+server:
+  port: ${PORT:8084}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
