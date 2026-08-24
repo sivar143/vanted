@@ -24,3 +24,5 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
+
+VANTED_JWT_SECRET: ${VANTED_JWT_SECRET:change-this-development-secret-at-least-32-characters-long}
