@@ -13,7 +13,7 @@ x-vanted-env: &vanted-env
 
 services:
   mysql:
-    image: mysql:8.4.12
+    image: mysql:8.4.11
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-vanted}
@@ -63,6 +63,7 @@ services:
       AUTH_DB_URL: jdbc:mysql://mysql:3306/vanted_auth?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       AUTH_DB_USERNAME: ${MYSQL_USER:-vanted}
       AUTH_DB_PASSWORD: ${MYSQL_PASSWORD:-change-me}
+      VANTED_JWT_SECRET: ${VANTED_JWT_SECRET:-change-this-development-secret-to-a-long-random-value}
     depends_on:
       mysql:
         condition: service_healthy
@@ -75,6 +76,7 @@ services:
       CATALOG_DB_URL: jdbc:mysql://mysql:3306/vanted_catalog?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       CATALOG_DB_USERNAME: ${MYSQL_USER:-vanted}
       CATALOG_DB_PASSWORD: ${MYSQL_PASSWORD:-change-me}
+      VANTED_JWT_SECRET: ${VANTED_JWT_SECRET:-change-this-development-secret-to-a-long-random-value}
     depends_on:
       mysql:
         condition: service_healthy
@@ -88,6 +90,7 @@ services:
       ORDER_DB_USERNAME: ${MYSQL_USER:-vanted}
       ORDER_DB_PASSWORD: ${MYSQL_PASSWORD:-change-me}
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-vanted}:${RABBITMQ_PASSWORD:-change-me}@rabbitmq:5672
+      VANTED_JWT_SECRET: ${VANTED_JWT_SECRET:-change-this-development-secret-to-a-long-random-value}
     depends_on:
       mysql:
         condition: service_healthy
@@ -103,6 +106,7 @@ services:
       PAYMENT_DB_USERNAME: ${MYSQL_USER:-vanted}
       PAYMENT_DB_PASSWORD: ${MYSQL_PASSWORD:-change-me}
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-vanted}:${RABBITMQ_PASSWORD:-change-me}@rabbitmq:5672
+      VANTED_JWT_SECRET: ${VANTED_JWT_SECRET:-change-this-development-secret-to-a-long-random-value}
     depends_on:
       mysql:
         condition: service_healthy
