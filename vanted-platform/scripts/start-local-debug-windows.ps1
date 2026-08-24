@@ -27,6 +27,8 @@ foreach ($key in $replacements.Keys) {
 Set-Content '.env.debug' $content
 
 docker compose --env-file .env.debug up -d --build
-Write-Host 'Vanted local debug environment is running at http://localhost' -ForegroundColor Green
+if ($LASTEXITCODE -ne 0) { throw "Vanted local debug startup failed. Exit code: $LASTEXITCODE" }
+Write-Host 'Vanted local debug environment is running at http://localhost:8080' -ForegroundColor Green
+Write-Host 'RabbitMQ management: http://localhost:15672' -ForegroundColor Green
 Write-Host 'Production-like features are enabled with sandbox integrations only.' -ForegroundColor Yellow
 docker compose --env-file .env.debug ps
