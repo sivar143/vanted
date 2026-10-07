@@ -3,7 +3,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'CUSTOMER' | 'PROVIDER' | 'ADMIN';
+  role: 'CUSTOMER' | 'PROVIDER' | 'ADMIN' | 'HR';
 }
 
 export interface AuthResponse {

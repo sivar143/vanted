@@ -11,6 +11,10 @@ export class AuthService {
 
   readonly user = this.userSignal.asReadonly();
   readonly authenticated = computed(() => !!this.userSignal());
+  readonly canManageOrganization = computed(() => {
+    const role = this.userSignal()?.role;
+    return role === 'ADMIN' || role === 'HR';
+  });
 
   constructor() {
     const token = sessionStorage.getItem(this.tokenKey);

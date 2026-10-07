@@ -12,6 +12,7 @@ import { AuthService } from './core/auth/auth.service';
       <div class="links">
         <a routerLink="/services">Services</a>
         @if (auth.authenticated()) { <a routerLink="/account">Account</a> }
+        @if (auth.canManageOrganization()) { <a routerLink="/organization">Organization</a> }
         @else { <a routerLink="/login">Sign in</a> }
       </div>
     </nav>
