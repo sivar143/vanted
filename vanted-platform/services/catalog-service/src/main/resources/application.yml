@@ -17,10 +17,6 @@ spring:
     locations: classpath:db/migration
 server:
   port: ${PORT:8082}
-vanted:
-  security:
-    jwt-secret: ${VANTED_JWT_SECRET:change-this-development-secret-to-a-long-random-value}
-
 management:
   endpoints:
     web:
