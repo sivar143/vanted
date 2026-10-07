@@ -18,3 +18,26 @@ template: `
 ` ,styles:[
 `.page{max-width:1250px;margin:auto;padding:110px 28px 60px;color:#eef5ff}header{display:flex;justify-content:space-between;align-items:center}small{color:#6ca8ff;letter-spacing:.15em}h1{margin:5px 0}section{margin-top:24px;padding:22px;background:#0b1724;border:1px solid #24384d;border-radius:14px}h2{display:flex;justify-content:space-between;align-items:center}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-top:1px solid #203449;text-align:left}input,textarea,select{background:#08121e;color:#eef5ff;border:1px solid #30465d;border-radius:7px;padding:9px;margin:4px;width:calc(100% - 8px)}.form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:15px}.form textarea{grid-column:1/-1}button{background:#17304a;color:#eef5ff;border:1px solid #35506a;border-radius:7px;padding:8px 12px;margin:2px;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.danger{color:#ffb7bd;border-color:#8f3944}.warn{color:#ffc98a;font-size:13px}.error{background:#2a1217;color:#ffb9bf;padding:12px;margin:15px 0;border-radius:8px}.ok{background:#10261d;color:#9de2bd;padding:12px;margin:15px 0;border-radius:8px}@media(max-width:800px){.form{grid-template-columns:1fr}}`
 ],
+export class OrganizationPage{
+ private api=inject(OrganizationService);
+ departments=signal<Department[]>([]); designations=signal<Designation[]>([]); employees=signal<Employee[]>([]);
+ error=signal(''); message=signal(''); deptEdit=signal(false); desigEdit=signal(false);
+ deptId=0; deptName=''; deptDesc=''; desigId=0; desigName=''; desigDepartment=0; desigDesc='';
+ deptDeleteMessage='Employees are already assigned to this department. Please reassign the employees to another department before deleting this department.';
+ desigDeleteMessage='Employees are already assigned to this designation. Please reassign the employees to another designation before deleting this designation.';
+ constructor(){this.load();}
+ load(){this.api.get().subscribe({next:r=>{this.departments.set(r.departments);this.designations.set(r.designations);this.employees.set(r.employees)},error:e=>this.fail(e)})}
+ newDepartment(){this.clear();this.deptId=0;this.deptName='';this.deptDesc='';this.deptEdit.set(true)}
+ editDepartment(d:Department){this.clear();this.deptId=d.id;this.deptName=d.name;this.deptDesc=d.description||'';this.deptEdit.set(true)}
+ saveDepartment(){if(!this.deptName.trim()){this.error.set('Department name is required.');return}const v={name:this.deptName,description:this.deptDesc};const c=this.deptId?this.api.updateDepartment(this.deptId,v):this.api.createDepartment(v);c.subscribe({next:()=>{this.message.set('Department saved.');this.deptEdit.set(false);this.load()},error:e=>this.fail(e)})}
+ deleteDepartment(d:Department){if(d.employeeCount>0)return;if(!confirm('Delete '+d.name+'?'))return;this.api.deleteDepartment(d.id).subscribe({next:()=>{this.message.set('Department deleted.');this.load()},error:e=>this.fail(e)})}
+ newDesignation(){this.clear();this.desigId=0;this.desigName='';this.desigDepartment=this.departments()[0]?.id||0;this.desigDesc='';this.desigEdit.set(true)}
+ editDesignation(g:Designation){this.clear();this.desigId=g.id;this.desigName=g.name;this.desigDepartment=g.departmentId;this.desigDesc=g.description||'';this.desigEdit.set(true)}
+ saveDesignation(){if(!this.desigName.trim()||!this.desigDepartment){this.error.set('Designation name and department are required.');return}const v={name:this.desigName,departmentId:this.desigDepartment,description:this.desigDesc};const c=this.desigId?this.api.updateDesignation(this.desigId,v):this.api.createDesignation(v);c.subscribe({next:()=>{this.message.set('Designation saved.');this.desigEdit.set(false);this.load()},error:e=>this.fail(e)})}
+ deleteDesignation(g:Designation){if(g.employeeCount>0)return;if(!confirm('Delete '+g.name+'?'))return;this.api.deleteDesignation(g.id).subscribe({next:()=>{this.message.set('Designation deleted.');this.load()},error:e=>this.fail(e)})}
+ designationsFor(id:number){return this.designations().filter(g=>g.departmentId===Number(id))}
+ changeDepartment(e:Employee,id:number){e.departmentId=Number(id);const gs=this.designationsFor(e.departmentId);if(!gs.some(g=>g.id===e.designationId))e.designationId=gs[0]?.id||0;this.employees.set([...this.employees()])}
+ saveEmployee(e:Employee){const g=this.designations().find(x=>x.id===e.designationId);if(!g||g.departmentId!==e.departmentId){this.error.set('The selected designation must belong to the selected department.');return}this.api.updateEmployee(e.id,{firstName:e.firstName,lastName:e.lastName,email:e.email,departmentId:e.departmentId,designationId:e.designationId}).subscribe({next:()=>{this.message.set('Employee assignment updated.');this.load()},error:x=>this.fail(x)})}
+ private clear(){this.error.set('');this.message.set('')}
+ private fail(e:unknown){const x=e as HttpErrorResponse;this.message.set('');this.error.set(x.error?.message||x.message||'The operation could not be completed.')}
+}
